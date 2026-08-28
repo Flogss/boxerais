@@ -5,7 +5,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import TelegramError
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ChatJoinRequestHandler,
+    ContextTypes,
+)
 
 load_dotenv()
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -33,8 +39,9 @@ VALIDATED_TEXT = (
     "⌛ Ta demande passe ensuite en validation par le staff."
 )
 
-# Canaux Telegram : un lien d'invitation à usage unique (member_limit=1) est
-# généré à la volée pour chaque utilisateur — non partageable, un seul join possible.
+# Canaux Telegram : un lien d'invitation personnel est généré à la volée pour
+# chaque utilisateur. Il exige une demande d'adhésion (validation manuelle par
+# le staff) et est révoqué dès la première demande reçue, donc non réutilisable.
 TELEGRAM_CHANNELS = [
     ("🔗 SHIRO BOX!NG", BOXING_CHANNEL_ID),
     ("🔗 SHIRO VOUCHES", VOUCHES_CHANNEL_ID),
@@ -53,7 +60,7 @@ async def build_channel_keyboard(context: ContextTypes.DEFAULT_TYPE, user_id: in
         try:
             invite = await context.bot.create_chat_invite_link(
                 chat_id=chat_id,
-                member_limit=1,
+                creates_join_request=True,
                 name=f"user-{user_id}",
             )
             url = invite.invite_link
@@ -98,12 +105,30 @@ async def accept(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
 
 
+async def handle_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    request = update.chat_join_request
+    invite_link = request.invite_link
+    if invite_link and invite_link.name and invite_link.name.startswith("user-"):
+        try:
+            await context.bot.revoke_chat_invite_link(
+                chat_id=request.chat.id,
+                invite_link=invite_link.invite_link,
+            )
+        except TelegramError:
+            logger.exception(
+                "Impossible de révoquer le lien après la demande de %s dans %s",
+                request.from_user.id,
+                request.chat.id,
+            )
+
+
 def main() -> None:
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(accept, pattern="^accept$"))
+    app.add_handler(ChatJoinRequestHandler(handle_join_request))
     logger.info("Bot démarré.")
-    app.run_polling()
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
