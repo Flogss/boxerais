@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 WELCOME_TEXT = (
     "👋 BIENVENUE CHER SAMOURAI :\n\n"
     "Avant d'entrer, une étape rapide. En continuant, tu acceptes :\n"
-    "• les Conditions de Telegram (<a href=\"https://telegram.org/tos/eu\">lien</a>)\n"
+    "• <a href=\"https://telegram.org/tos/eu\">les Conditions de Telegram</a>\n"
     "• les règles du bot — lien personnel, aucun partage.\n\n"
     "🔒 Appuie sur « J'accepte » pour te vérifier."
 )
