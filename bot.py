@@ -16,7 +16,7 @@ from telegram.ext import (
 load_dotenv()
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
-IMAGE_PATH = Path(__file__).parent / "assets_samurai.png"
+VIDEO_PATH = Path(__file__).parent / "assets_samurai.mp4"
 
 BOXING_CHANNEL_ID = int(os.environ["BOXING_CHANNEL_ID"])
 VOUCHES_CHANNEL_ID = int(os.environ["VOUCHES_CHANNEL_ID"])
@@ -96,10 +96,10 @@ async def accept(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = await build_channel_keyboard(context, query.from_user.id)
 
     await query.message.delete()
-    with open(IMAGE_PATH, "rb") as photo:
-        await context.bot.send_photo(
+    with open(VIDEO_PATH, "rb") as video:
+        await context.bot.send_video(
             chat_id=query.message.chat_id,
-            photo=photo,
+            video=video,
             caption=VALIDATED_TEXT.format(pseudo=display_name),
             reply_markup=keyboard,
         )
