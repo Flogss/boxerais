@@ -4,12 +4,16 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import TelegramError
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 load_dotenv()
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
 IMAGE_PATH = Path(__file__).parent / "assets_samurai.png"
+
+BOXING_CHANNEL_ID = int(os.environ["BOXING_CHANNEL_ID"])
+VOUCHES_CHANNEL_ID = int(os.environ["VOUCHES_CHANNEL_ID"])
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,11 +33,38 @@ VALIDATED_TEXT = (
     "⌛ Ta demande passe ensuite en validation par le staff."
 )
 
-CHANNELS = [
-    ("🔗 SHIRO BOX!NG", "https://t.me/+Yyz9O69XCAc0NTU0"),
-    ("🔗 SHIRO VOUCHES", "https://t.me/+nTIzbbDr8VoyMTdk"),
-    ("🔗 SIGNAL BACKUP", "https://signal.group/#CjQKINiXQg5CaQ3wvkZ7gmHC88deQQtG9P7wU9FacZMQrswHEhATB86QuJPSsIuYPqC9O4RM"),
+# Canaux Telegram : un lien d'invitation à usage unique (member_limit=1) est
+# généré à la volée pour chaque utilisateur — non partageable, un seul join possible.
+TELEGRAM_CHANNELS = [
+    ("🔗 SHIRO BOX!NG", BOXING_CHANNEL_ID),
+    ("🔗 SHIRO VOUCHES", VOUCHES_CHANNEL_ID),
 ]
+
+# Signal n'est pas géré par l'API Telegram : lien fixe.
+SIGNAL_CHANNEL = (
+    "🔗 SIGNAL BACKUP",
+    "https://signal.group/#CjQKINiXQg5CaQ3wvkZ7gmHC88deQQtG9P7wU9FacZMQrswHEhATB86QuJPSsIuYPqC9O4RM",
+)
+
+
+async def build_channel_keyboard(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> InlineKeyboardMarkup:
+    buttons = []
+    for label, chat_id in TELEGRAM_CHANNELS:
+        try:
+            invite = await context.bot.create_chat_invite_link(
+                chat_id=chat_id,
+                member_limit=1,
+                name=f"user-{user_id}",
+            )
+            url = invite.invite_link
+        except TelegramError:
+            logger.exception("Échec de création du lien d'invitation pour %s (chat_id=%s)", label, chat_id)
+            continue
+        buttons.append([InlineKeyboardButton(label, url=url)])
+
+    signal_label, signal_url = SIGNAL_CHANNEL
+    buttons.append([InlineKeyboardButton(signal_label, url=signal_url)])
+    return InlineKeyboardMarkup(buttons)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -55,9 +86,7 @@ async def accept(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     pseudo = query.from_user.username
     display_name = f"@{pseudo}" if pseudo else query.from_user.first_name
 
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(label, url=url)] for label, url in CHANNELS]
-    )
+    keyboard = await build_channel_keyboard(context, query.from_user.id)
 
     await query.message.delete()
     with open(IMAGE_PATH, "rb") as photo:
