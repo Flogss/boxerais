@@ -1,5 +1,6 @@
 import os
 import logging
+from pathlib import Path
 
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -7,6 +8,8 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 
 load_dotenv()
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+
+IMAGE_PATH = Path(__file__).parent / "assets_samurai.png"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,10 +59,14 @@ async def accept(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [[InlineKeyboardButton(label, url=url)] for label, url in CHANNELS]
     )
 
-    await query.edit_message_text(
-        VALIDATED_TEXT.format(pseudo=display_name),
-        reply_markup=keyboard,
-    )
+    await query.message.delete()
+    with open(IMAGE_PATH, "rb") as photo:
+        await context.bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=photo,
+            caption=VALIDATED_TEXT.format(pseudo=display_name),
+            reply_markup=keyboard,
+        )
 
 
 def main() -> None:
