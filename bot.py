@@ -28,8 +28,8 @@ VOUCHES_CHANNEL_ID = int(os.environ["VOUCHES_CHANNEL_ID"])
 ADMIN_SESSION_SECONDS = 30 * 60
 PASSWORD_COOLDOWN_BASE = 60  # secondes, double à chaque échec
 
-ANNOUNCE_ORDER_URL = "https://t.me/shirobx"
-ANNOUNCE_VOUCHES_URL = "https://t.me/+nTIzbbDr8VoyMTdk"
+ANNOUNCE_ORDER_URL = "https://t.me/litdepot"
+ANNOUNCE_VOUCHES_URL = "https://t.me/+gILLQWJX5w8zNmQx"
 
 # État admin en mémoire, par user_id : session, cooldown mot de passe, annonce en cours.
 admin_state: dict[int, dict] = {}
